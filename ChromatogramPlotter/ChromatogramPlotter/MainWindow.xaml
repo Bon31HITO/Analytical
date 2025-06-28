@@ -3,10 +3,68 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ChromatogramPlotter"
+        xmlns:viewmodels="clr-namespace:ChromatogramPlotter.ViewModels"
+        xmlns:controls="clr-namespace:ChromatogramPlotter.Controls"
+        xmlns:mvvm="clr-namespace:ChromatogramPlotter.Mvvm"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="{Binding Title}" Height="720" Width="1280">
 
-    </Grid>
+    <Window.DataContext>
+        <viewmodels:MainWindowViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+        <mvvm:ObjectToBoolConverter x:Key="ObjectToBoolConverter" />
+    </Window.Resources>
+
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_ファイル(F)">
+                <MenuItem Header="_CSVを開く(O)..." Command="{Binding OpenFileCommand}" />
+                <MenuItem Header="_SVGを保存(S)..." Command="{Binding SaveSvgCommand}" />
+                <Separator />
+                <MenuItem Header="_終了(X)" Command="{Binding ExitCommand}" />
+            </MenuItem>
+            <MenuItem Header="_編集(E)">
+                <MenuItem Header="_SVGをクリップボードにコピー(C)" Command="{Binding CopySvgCommand}" />
+            </MenuItem>
+        </Menu>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" MinWidth="150" />
+                <ColumnDefinition Width="*" MinWidth="400" />
+                <ColumnDefinition Width="280" MinWidth="220" />
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0" Margin="10,0,5,10">
+                <StackPanel DockPanel.Dock="Top" Orientation="Vertical">
+                    <TextBlock Text="ヘッダー行数:" Margin="0,5,0,2"/>
+                    <TextBox Text="{Binding HeaderRowCount, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Content="CSVを開く..." Command="{Binding OpenFileCommand}" Margin="0,10,0,10" />
+                </StackPanel>
+                <GroupBox Header="描画する系列" DockPanel.Dock="Top">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding AvailableSeries}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="5"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </GroupBox>
+            </DockPanel>
+
+            <Border Grid.Column="1" BorderBrush="Gray" BorderThickness="1" Margin="5,0,5,10">
+                <controls:SvgView SvgSource="{Binding SvgContent}" />
+            </Border>
+
+            <DockPanel Grid.Column="2" Margin="5,0,10,10"
+                       IsEnabled="{Binding SvgContent, Converter={StaticResource ObjectToBoolConverter}, FallbackValue=False}">
+                <TextBlock DockPanel.Dock="Top" Text="プロパティ" FontSize="14" FontWeight="Bold" Margin="5,2,5,5" />
+                <controls:PropertyGrid ItemsSource="{Binding PropertyItems}" />
+            </DockPanel>
+        </Grid>
+    </DockPanel>
 </Window>

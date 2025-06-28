@@ -1,0 +1,48 @@
+﻿<Window x:Class="ChromatogramPlotter.Views.OptionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewmodels="clr-namespace:ChromatogramPlotter.ViewModels"
+        mc:Ignorable="d"
+        Title="表示オプション" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterOwner"
+        d:DataContext="{d:DesignInstance Type=viewmodels:OptionsViewModel}"
+        ResizeMode="NoResize">
+    <StackPanel Margin="15">
+        <GroupBox Header="グラフ線" Margin="5">
+            <StackPanel Margin="10">
+                <TextBlock Text="線の太さ:" />
+                <Slider Value="{Binding LineWidth}" Minimum="0.5" Maximum="5" TickFrequency="0.1" IsSnapToTickEnabled="True" />
+                <TextBlock Text="{Binding LineWidth, StringFormat={}{0:F1}}" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </GroupBox>
+        <GroupBox Header="軸" Margin="5">
+            <Grid Margin="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="X軸 目盛り数:" />
+                <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding XAxisTickCount}" />
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="Y軸 目盛り数:" />
+                <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding YAxisTickCount}" />
+            </Grid>
+        </GroupBox>
+        <GroupBox Header="凡例" Margin="5">
+            <StackPanel Margin="10">
+                <TextBlock Text="フォントサイズ:" />
+                <Slider Value="{Binding LegendFontSize}" Minimum="8" Maximum="20" TickFrequency="1" IsSnapToTickEnabled="True" />
+                <TextBlock Text="{Binding LegendFontSize}" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </GroupBox>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="5,15,5,5">
+            <Button Content="OK" IsDefault="True" MinWidth="80" Margin="5" Click="OkButton_Click" />
+            <Button Content="キャンセル" IsCancel="True" MinWidth="80" Margin="5" />
+        </StackPanel>
+    </StackPanel>
+</Window>
