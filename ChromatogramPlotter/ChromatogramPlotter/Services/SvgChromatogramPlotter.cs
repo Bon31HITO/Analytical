@@ -39,7 +39,7 @@ namespace ChromatogramPlotter.Services
             sb.AppendLine($"<svg width='{options.Width}' height='{options.Height}' xmlns='http://www.w3.org/2000/svg' font-family='{options.FontFamily}, sans-serif' stroke-linecap='round' stroke-linejoin='round'>");
             sb.AppendLine($"<rect x='0' y='0' width='{options.Width}' height='{options.Height}' fill='{options.BackgroundColor}' />");
 
-            sb.AppendLine($"<text x='{options.Width / 2.0}' y='{options.Margin.Top / 2.0}' font-size='{options.TitleFontSize}' font-weight='bold' text-anchor='middle' dominant-baseline='middle'>{options.Title}</text>");
+            sb.AppendLine($"<text x='{options.Width / 2.0}' y='{options.Margin.Top / 2.0}' font-size='{options.TitleFontSize}' font-weight='bold' text-anchor='middle'>{options.Title}</text>");
 
             double plotWidth = options.Width - options.Margin.Left - options.Margin.Right;
             double plotHeight = options.Height - options.Margin.Top - options.Margin.Bottom;
@@ -80,8 +80,12 @@ namespace ChromatogramPlotter.Services
                 var series = seriesList[i];
                 double currentY = legendY + (i * (options.LegendFontSize + 8));
 
-                sb.AppendLine($"<line x1='{legendX - 20}' y1='{currentY + options.LegendFontSize / 2.0}' x2='{legendX - 5}' y2='{currentY + options.LegendFontSize / 2.0}' stroke='{series.Color}' stroke-width='{options.LineWidth}' />");
-                sb.AppendLine($"<text x='{legendX}' y='{currentY + options.LegendFontSize / 2.0}' dominant-baseline='middle' text-anchor='start'>{series.Name}</text>");
+                // 線の位置と長さを微調整
+                sb.AppendLine($"<line x1='{legendX - 22}' y1='{currentY + options.LegendFontSize / 2.0}' x2='{legendX - 8}' y2='{currentY + options.LegendFontSize / 2.0}' stroke='{series.Color}' stroke-width='{options.LineWidth}' />");
+
+                // テキストの位置を微調整
+                double yBaseline = currentY + options.LegendFontSize / 2.0 + (options.LegendFontSize * 0.35);
+                sb.AppendLine($"<text x='{legendX - 2}' y='{yBaseline.ToString(CultureInfo.InvariantCulture)}' text-anchor='start'>{series.Name}</text>");
             }
             sb.AppendLine("</g>");
         }
@@ -109,38 +113,34 @@ namespace ChromatogramPlotter.Services
                 sb.AppendLine("</g>");
             }
 
-            // 軸線は独立したグループで描画
             sb.AppendLine($"<g id='axis-lines' stroke='black' stroke-width='{options.AxisWidth}'>");
-            sb.AppendLine($"<line x1='{left}' y1='{bottom}' x2='{right}' y2='{bottom}' />"); // X軸線
-            sb.AppendLine($"<line x1='{left}' y1='{top}' x2='{left}' y2='{bottom}' />");      // Y軸線
+            sb.AppendLine($"<line x1='{left}' y1='{bottom}' x2='{right}' y2='{bottom}' />");
+            sb.AppendLine($"<line x1='{left}' y1='{top}' x2='{left}' y2='{bottom}' />");
             sb.AppendLine("</g>");
 
-            // 目盛りと目盛りラベルのグループ (strokeは設定しない)
             sb.AppendLine($"<g id='ticks-and-labels' fill='black' font-size='{options.TickLabelFontSize}'>");
-            // X軸
             sb.AppendLine($"<g id='x-axis' text-anchor='middle'>");
             for (int i = 0; i <= options.XAxisTickCount; i++)
             {
                 double x = left + plotWidth * i / options.XAxisTickCount;
-                // 目盛り線にはstrokeを明示的に指定
                 sb.AppendLine($"<line x1='{x}' y1='{bottom}' x2='{x}' y2='{bottom + 5}' stroke='black' stroke-width='{options.AxisWidth}' />");
                 sb.AppendLine($"<text x='{x}' y='{bottom + 8 + options.TickLabelFontSize}'>{minTime + (maxTime - minTime) * i / options.XAxisTickCount:G3}</text>");
             }
             sb.AppendLine("</g>");
 
-            // Y軸
-            sb.AppendLine($"<g id='y-axis' text-anchor='end' dominant-baseline='middle'>");
+            sb.AppendLine($"<g id='y-axis' text-anchor='end'>");
             for (int i = 0; i <= options.YAxisTickCount; i++)
             {
                 double y = top + plotHeight * i / options.YAxisTickCount;
-                // 目盛り線にはstrokeを明示的に指定
                 sb.AppendLine($"<line x1='{left - 5}' y1='{y}' x2='{left}' y2='{y}' stroke='black' stroke-width='{options.AxisWidth}' />");
-                sb.AppendLine($"<text x='{left - 8}' y='{y}'>{maxIntensity - (maxIntensity - minIntensity) * i / options.YAxisTickCount:G3}</text>");
+
+                double yTickBaseline = y + (options.TickLabelFontSize * 0.35);
+                // ラベルと目盛り線の間隔を広げる (x='left - 10')
+                sb.AppendLine($"<text x='{left - 10}' y='{yTickBaseline.ToString(CultureInfo.InvariantCulture)}'>{maxIntensity - (maxIntensity - minIntensity) * i / options.YAxisTickCount:G3}</text>");
             }
             sb.AppendLine("</g>");
             sb.AppendLine("</g>");
 
-            // 軸ラベルのグループ (strokeは設定しない)
             sb.AppendLine($"<g id='axis-labels' fill='black' font-size='{options.AxisLabelFontSize}' text-anchor='middle'>");
             double xAxisLabelY = bottom + 35 + options.TickLabelFontSize;
             sb.AppendLine($"<text x='{left + plotWidth / 2.0}' y='{xAxisLabelY}'>{options.XAxisLabel}</text>");

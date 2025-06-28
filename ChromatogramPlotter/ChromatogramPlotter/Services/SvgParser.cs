@@ -13,7 +13,7 @@ namespace ChromatogramPlotter.Services
     /// SVG文字列を解析し、WPFのUIElementに変換するパーサー。
     /// 属性の継承をサポートする改善版です。
     /// </summary>
-    public class SvgParser
+    class SvgParser
     {
         public (List<UIElement> elements, Size viewboxSize) Parse(string svgContent)
         {
@@ -27,11 +27,10 @@ namespace ChromatogramPlotter.Services
             double width = ParseDouble(svgNode.Attribute("width")?.Value ?? "0");
             double height = ParseDouble(svgNode.Attribute("height")?.Value ?? "0");
 
-            // ルートのコンテキストを生成
             var initialContext = new SvgParsingContext
             {
-                Fill = "black", // デフォルトのfill
-                Stroke = "none", // デフォルトのstroke
+                Fill = "black",
+                Stroke = "none",
                 FontSize = 12.0,
                 FontFamily = svgNode.Attribute("font-family")?.Value ?? "Arial, sans-serif"
             };
@@ -43,7 +42,6 @@ namespace ChromatogramPlotter.Services
 
         private void ParseNode(XElement node, SvgParsingContext parentContext, List<UIElement> elements)
         {
-            // 現在のノードの属性でコンテキストを更新
             var currentContext = new SvgParsingContext(parentContext, node);
 
             switch (node.Name.LocalName)
@@ -105,7 +103,7 @@ namespace ChromatogramPlotter.Services
             {
                 Stroke = ParseBrush(node.Attribute("stroke")?.Value ?? context.Stroke),
                 StrokeThickness = ParseDouble(node.Attribute("stroke-width")?.Value ?? context.StrokeWidth.ToString(CultureInfo.InvariantCulture)),
-                Fill = ParseBrush(node.Attribute("fill")?.Value ?? "none"), // polylineは通常fillしない
+                Fill = ParseBrush(node.Attribute("fill")?.Value ?? "none"),
                 RenderTransform = context.Transform
             };
 
@@ -125,10 +123,12 @@ namespace ChromatogramPlotter.Services
 
         private UIElement ParseText(XElement node, SvgParsingContext context)
         {
+            var fontSize = ParseDouble(node.Attribute("font-size")?.Value) is var fs && fs > 0 ? fs : context.FontSize;
+
             var textBlock = new TextBlock
             {
                 Text = node.Value,
-                FontSize = ParseDouble(node.Attribute("font-size")?.Value) is var fs && fs > 0 ? fs : context.FontSize,
+                FontSize = fontSize,
                 FontFamily = new FontFamily(node.Attribute("font-family")?.Value ?? context.FontFamily),
                 Foreground = ParseBrush(node.Attribute("fill")?.Value ?? context.Fill),
             };
@@ -138,18 +138,11 @@ namespace ChromatogramPlotter.Services
 
             double x = ParseDouble(node.Attribute("x")?.Value);
             double y = ParseDouble(node.Attribute("y")?.Value);
+
+            double dyOffset = ParseRelativeUnit(node.Attribute("dy")?.Value, fontSize);
+
             textBlock.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             var measuredSize = textBlock.DesiredSize;
-
-            var dominantBaseline = node.Attribute("dominant-baseline")?.Value ?? context.DominantBaseline;
-            if (dominantBaseline == "middle")
-            {
-                Canvas.SetTop(textBlock, y - measuredSize.Height / 2);
-            }
-            else
-            {
-                Canvas.SetTop(textBlock, y - measuredSize.Height); // デフォルトの近似
-            }
 
             var textAnchor = node.Attribute("text-anchor")?.Value ?? context.TextAnchor;
             switch (textAnchor)
@@ -158,7 +151,25 @@ namespace ChromatogramPlotter.Services
                 case "end": Canvas.SetLeft(textBlock, x - measuredSize.Width); break;
                 default: Canvas.SetLeft(textBlock, x); break;
             }
+
+            double baselineApproximation = measuredSize.Height * 0.8;
+            Canvas.SetTop(textBlock, y - baselineApproximation + dyOffset);
+
             return canvas;
+        }
+
+        private double ParseRelativeUnit(string? value, double fontSize)
+        {
+            if (string.IsNullOrEmpty(value)) return 0.0;
+            if (value.EndsWith("em"))
+            {
+                if (double.TryParse(value.Replace("em", ""), CultureInfo.InvariantCulture, out double emValue))
+                {
+                    return emValue * fontSize;
+                }
+            }
+            double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out double result);
+            return result;
         }
 
         private static double ParseDouble(string? s)
@@ -174,9 +185,6 @@ namespace ChromatogramPlotter.Services
         }
     }
 
-    /// <summary>
-    /// SVG解析中の状態（継承される属性）を保持するヘルパークラス。
-    /// </summary>
     internal class SvgParsingContext
     {
         public Transform Transform { get; set; } = Transform.Identity;
@@ -186,13 +194,11 @@ namespace ChromatogramPlotter.Services
         public double FontSize { get; set; } = 12.0;
         public string FontFamily { get; set; } = "Arial";
         public string TextAnchor { get; set; } = "start";
-        public string DominantBaseline { get; set; } = "auto";
 
         public SvgParsingContext() { }
 
         public SvgParsingContext(SvgParsingContext parent, XElement node)
         {
-            // 親のコンテキストから値を継承
             Transform = parent.Transform;
             Fill = parent.Fill;
             Stroke = parent.Stroke;
@@ -200,18 +206,14 @@ namespace ChromatogramPlotter.Services
             FontSize = parent.FontSize;
             FontFamily = parent.FontFamily;
             TextAnchor = parent.TextAnchor;
-            DominantBaseline = parent.DominantBaseline;
 
-            // 現在のノードの属性で上書き
             Fill = node.Attribute("fill")?.Value ?? Fill;
             Stroke = node.Attribute("stroke")?.Value ?? Stroke;
             if (double.TryParse(node.Attribute("stroke-width")?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var sw)) StrokeWidth = sw;
             if (double.TryParse(node.Attribute("font-size")?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var fs)) FontSize = fs;
             FontFamily = node.Attribute("font-family")?.Value ?? FontFamily;
             TextAnchor = node.Attribute("text-anchor")?.Value ?? TextAnchor;
-            DominantBaseline = node.Attribute("dominant-baseline")?.Value ?? DominantBaseline;
 
-            // Transformを合成
             var transformAttr = node.Attribute("transform")?.Value;
             if (!string.IsNullOrEmpty(transformAttr))
             {

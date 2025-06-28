@@ -52,7 +52,7 @@ namespace ChromatogramPlotter.Models
         public string YAxisLabel { get; set; } = "Intensity";
 
         [Browsable(false)]
-        public string BackgroundColor { get; set; } = "Transparent";
+        public string BackgroundColor { get; set; } = "transparent";
 
         public PlotOptions Clone()
         {
