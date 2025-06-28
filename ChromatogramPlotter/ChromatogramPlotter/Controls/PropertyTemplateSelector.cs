@@ -20,7 +20,7 @@ namespace ChromatogramPlotter.Controls
             // プロパティ名でテンプレートを振り分け
             switch (vm.DisplayName)
             {
-                case "グラフ全体のフォント":
+                case "フォント":
                     return FontFamilyTemplate!;
                 case "軸線の太さ":
                     return AxisWidthTemplate!;

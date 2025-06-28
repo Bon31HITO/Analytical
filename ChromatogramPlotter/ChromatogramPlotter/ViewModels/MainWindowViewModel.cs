@@ -11,10 +11,8 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace ChromatogramPlotter.ViewModels
 {
@@ -22,7 +20,9 @@ namespace ChromatogramPlotter.ViewModels
     {
         private readonly CsvParser _csvParser = new();
         private readonly SvgChromatogramPlotter _svgPlotter = new();
-        private PlotOptions _plotOptions = new PlotOptions();
+        private readonly SettingsService _settingsService = new();
+
+        private PlotOptions _plotOptions;
         private string? _loadedFilePath;
 
         private static readonly List<string> PlotColors = new List<string>
@@ -31,7 +31,6 @@ namespace ChromatogramPlotter.ViewModels
             "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
         };
 
-        // System.Drawing.Text.InstalledFontCollection の代わりに WPFネイティブのFontsクラスを使用
         public List<string> SystemFonts { get; } = Fonts.SystemFontFamilies
                                                         .Select(f => f.ToString())
                                                         .OrderBy(f => f)
@@ -56,13 +55,19 @@ namespace ChromatogramPlotter.ViewModels
         public ICommand SaveSvgCommand { get; }
         public ICommand CopySvgCommand { get; }
         public ICommand ExitCommand { get; }
+        public ICommand SaveDefaultsCommand { get; }
+        public ICommand ResetDefaultsCommand { get; }
 
         public MainWindowViewModel()
         {
+            _plotOptions = _settingsService.LoadPlotOptions();
+
             OpenFileCommand = new RelayCommand(ExecuteOpenFile);
             SaveSvgCommand = new RelayCommand(ExecuteSaveSvg, CanExecuteSaveOrCopy);
             CopySvgCommand = new RelayCommand(ExecuteCopySvg, CanExecuteSaveOrCopy);
             ExitCommand = new RelayCommand(ExecuteExit);
+            SaveDefaultsCommand = new RelayCommand(ExecuteSaveDefaults);
+            ResetDefaultsCommand = new RelayCommand(ExecuteResetDefaults);
         }
 
         private void ExecuteOpenFile(object? parameter)
@@ -86,7 +91,9 @@ namespace ChromatogramPlotter.ViewModels
                 for (int i = 0; i < seriesList.Count; i++)
                 {
                     var series = seriesList[i];
+                    // モデルに初期色を割り当てる
                     series.Color = PlotColors[i % PlotColors.Count];
+
                     var vm = new SelectableSeriesViewModel(series);
                     vm.PropertyChanged += OnSeriesPropertyChanged;
                     AvailableSeries.Add(vm);
@@ -131,6 +138,8 @@ namespace ChromatogramPlotter.ViewModels
 
         private void Replot()
         {
+            if (!AvailableSeries.Any()) return;
+
             var selectedModels = AvailableSeries.Where(vm => vm.IsSelected).Select(vm => vm.Model).ToList();
             _plotOptions.Title = Path.GetFileNameWithoutExtension(_loadedFilePath ?? "Chromatogram");
             SvgContent = _svgPlotter.Plot(selectedModels, _plotOptions);
@@ -178,12 +187,34 @@ namespace ChromatogramPlotter.ViewModels
                 dataObject.SetData(DataFormats.UnicodeText, SvgContent);
 
                 Clipboard.SetDataObject(dataObject, true);
-                ShowStatusMessage("画像とSVGをクリップボードにコピーしました");
+                ShowStatusMessage("SVG形式とテキストをクリップボードにコピーしました");
             }
             catch (System.Exception ex)
             {
                 ShowStatusMessage($"エラー: クリップボードへのコピーに失敗しました。 {ex.Message}");
             }
+        }
+
+        private void ExecuteSaveDefaults(object? parameter)
+        {
+            try
+            {
+                _settingsService.SavePlotOptions(_plotOptions);
+                ShowStatusMessage("現在の設定をデフォルトとして保存しました");
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage($"エラー: 設定の保存に失敗しました。 {ex.Message}");
+            }
+        }
+
+        private void ExecuteResetDefaults(object? parameter)
+        {
+            _settingsService.ResetPlotOptions();
+            _plotOptions = new PlotOptions();
+            PopulateProperties();
+            Replot();
+            ShowStatusMessage("設定をデフォルトにリセットしました");
         }
 
         private void ExecuteExit(object? parameter) => Application.Current.Shutdown();
