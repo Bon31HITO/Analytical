@@ -9,12 +9,6 @@ namespace ChromatogramPlotter.Services
 {
     class SvgChromatogramPlotter
     {
-        private readonly List<string> _plotColors = new List<string>
-        {
-            "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
-        };
-
         public string Plot(List<ChromatogramSeries> seriesToPlot, PlotOptions options)
         {
             if (seriesToPlot == null || !seriesToPlot.Any(s => s.Points.Any()))
@@ -28,11 +22,6 @@ namespace ChromatogramPlotter.Services
 
             if (maxIntensity == 0) maxIntensity = 1;
             if (maxTime == minTime) maxTime = minTime + 1;
-
-            for (int i = 0; i < seriesToPlot.Count; i++)
-            {
-                seriesToPlot[i].Color = _plotColors[i % _plotColors.Count];
-            }
 
             var sb = new StringBuilder();
             sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
@@ -80,10 +69,8 @@ namespace ChromatogramPlotter.Services
                 var series = seriesList[i];
                 double currentY = legendY + (i * (options.LegendFontSize + 8));
 
-                // 線の位置と長さを微調整
                 sb.AppendLine($"<line x1='{legendX - 22}' y1='{currentY + options.LegendFontSize / 2.0}' x2='{legendX - 8}' y2='{currentY + options.LegendFontSize / 2.0}' stroke='{series.Color}' stroke-width='{options.LineWidth}' />");
 
-                // テキストの位置を微調整
                 double yBaseline = currentY + options.LegendFontSize / 2.0 + (options.LegendFontSize * 0.35);
                 sb.AppendLine($"<text x='{legendX - 2}' y='{yBaseline.ToString(CultureInfo.InvariantCulture)}' text-anchor='start'>{series.Name}</text>");
             }
@@ -135,7 +122,6 @@ namespace ChromatogramPlotter.Services
                 sb.AppendLine($"<line x1='{left - 5}' y1='{y}' x2='{left}' y2='{y}' stroke='black' stroke-width='{options.AxisWidth}' />");
 
                 double yTickBaseline = y + (options.TickLabelFontSize * 0.35);
-                // ラベルと目盛り線の間隔を広げる (x='left - 10')
                 sb.AppendLine($"<text x='{left - 10}' y='{yTickBaseline.ToString(CultureInfo.InvariantCulture)}'>{maxIntensity - (maxIntensity - minIntensity) * i / options.YAxisTickCount:G3}</text>");
             }
             sb.AppendLine("</g>");
